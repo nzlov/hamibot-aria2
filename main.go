@@ -24,6 +24,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	db.AutoMigrate(new(User))
+	db.LogMode(true)
 
 	http.HandleFunc("/", serve)
 	fmt.Println("开始")
@@ -73,7 +75,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 
 	t := strings.TrimSpace(h.Text)
 	switch h.Command {
-	case "bind":
+	case "/bind":
 		ts := strings.Split(t, " ")
 		rpchost := ""
 		token := ""
@@ -114,21 +116,21 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		u.RPC = rpchost
 		u.Token = token
 		if u.ID > 0 {
-			if err := db.Create(&u).Error; err != nil {
+			if err := db.Save(&u).Error; err != nil {
 				resp(w, "内部错误")
 				fmt.Println(err)
 				return
 			}
 		} else {
-			if err := db.Save(&u).Error; err != nil {
+			if err := db.Create(&u).Error; err != nil {
 				resp(w, "内部错误")
 				fmt.Println(err)
 				return
 			}
 		}
 		resp(w, "绑定成功。"+info.Version)
-	case "unbing":
-		if err := db.Model(User{}).Where("openid = ? and clientid = ? and chatid = ?", h.OpenID, h.ClientID, h.ChatID).Updates(map[string]interface{}{
+	case "/unbind":
+		if err := db.Model(User{}).Where("open_id = ? and client_id = ? and chat_id = ?", h.OpenID, h.ClientID, h.ChatID).Updates(map[string]interface{}{
 			"rpc":   "",
 			"token": "",
 		}).Error; err != nil {
@@ -137,7 +139,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		resp(w, "解绑成功")
-	case "down":
+	case "/down":
 		ts := strings.Split(t, " ")
 		url := ""
 		name := ""
@@ -187,9 +189,11 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			resp(w, "添加成功。"+gid)
 			return
 		} else {
-			gid, err := c.AddURI(url, "out:"+name)
+			gid, err := c.AddURI(url, map[string]interface{}{
+				"out": name,
+			})
 			if err != nil {
-				resp(w, "验证rpc服务失败")
+				resp(w, "添加服务错误:"+err.Error())
 				fmt.Println(err)
 				return
 			}
@@ -197,7 +201,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	case "status":
+	case "/status":
 
 	default:
 		resp(w, "不支持此命令")
