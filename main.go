@@ -260,30 +260,22 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var units = []string{"B", "K", "M", "G", "T", "P"}
+
 func b(v string) string {
 	i, err := strconv.Atoi(v)
 	if err != nil {
 		return v
 	}
 	f := float64(i)
-	if f/1024 <= 1 {
-		return fmt.Sprintf("%.2fB", f)
+	u := 0
+
+	for f/1024 > 1 {
+		u++
+		f /= 1024
+		if u > len(units) {
+			return "-"
+		}
 	}
-	f /= 1024
-	if f/1024 <= 1 {
-		return fmt.Sprintf("%.2fK", f)
-	}
-	f /= 1024
-	if f/1024 <= 1 {
-		return fmt.Sprintf("%.2fM", f)
-	}
-	f /= 1024
-	if f/1024 <= 1 {
-		return fmt.Sprintf("%.2fG", f)
-	}
-	f /= 1024
-	if f/1024 <= 1 {
-		return fmt.Sprintf("%.2fP", f)
-	}
-	return "-"
+	return fmt.Sprintf("%.2f%v", f, units[u])
 }
