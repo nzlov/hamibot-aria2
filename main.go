@@ -11,6 +11,8 @@ import (
 	"context"
 	"time"
 
+	"strconv"
+
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/nzlov/gorm"
 	argo "github.com/zyxar/argo/rpc"
@@ -202,10 +204,86 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "/status":
+		u := User{
+			OpenID:   h.OpenID,
+			ClientID: h.ClientID,
+			ChatID:   h.ChatID,
+		}
+		if err := db.Where(&u).First(&u).Error; err != nil {
+			if err != gorm.ErrRecordNotFound {
+				resp(w, "内部错误")
+				fmt.Println(err)
+				return
+			}
+			resp(w, "请先绑定")
+			fmt.Println(err)
+			return
+		}
+		if u.RPC == "" {
+			resp(w, "请先绑定")
+			fmt.Println(err)
+			return
+		}
+		c, err := argo.New(context.Background(), u.RPC, u.Token, time.Second*5, nil)
+		if err != nil {
+			resp(w, "验证rpc服务失败:"+err.Error())
+			fmt.Println(err)
+			return
+		}
+		infos, err := c.TellActive("gid", "files", "status", "totalLength", "completedLength", "downloadSpeed", "bittorrent")
+		//infos, err := c.TellActive()
+		if err != nil {
+			resp(w, "获取信息失败:"+err.Error())
+			fmt.Println(err)
+			return
+		}
+		fmt.Printf("%+v\n", infos)
+		strs := []string{}
 
+		for _, v := range infos {
+			strs = append(strs, v.Gid+"["+v.Status+"]")
+			if v.BitTorrent.Info.Name != "" {
+				strs = append(strs, v.BitTorrent.Info.Name)
+			} else if len(v.Files) > 0 {
+				strs = append(strs, v.Files[0].Path)
+			}
+			strs = append(strs, fmt.Sprintf("速度:%v,比例：%v/%v", b(v.DownloadSpeed), b(v.CompletedLength), b(v.TotalLength)))
+		}
+		str := strings.Join(strs, "\n")
+		if len(str) > 2000 {
+			str = str[:2000]
+		}
+		resp(w, str)
 	default:
 		resp(w, "不支持此命令")
 		return
 	}
+}
 
+func b(v string) string {
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return v
+	}
+	f := float64(i)
+	if f/1024 <= 1 {
+		return fmt.Sprintf("%.2fB", f)
+	}
+	f /= 1024
+	if f/1024 <= 1 {
+		return fmt.Sprintf("%.2fK", f)
+	}
+	f /= 1024
+	if f/1024 <= 1 {
+		return fmt.Sprintf("%.2fM", f)
+	}
+	f /= 1024
+	if f/1024 <= 1 {
+		return fmt.Sprintf("%.2fG", f)
+	}
+	f /= 1024
+	if f/1024 <= 1 {
+		return fmt.Sprintf("%.2fP", f)
+	}
+	return "-"
 }
