@@ -18,6 +18,25 @@ import (
 	argo "github.com/zyxar/argo/rpc"
 )
 
+const (
+	help = `Aria2 命令：
+【/bind】：绑定Aria2
+【/unbind】：取消绑定
+【/down】：下载连接
+【/status】：查看状态`
+
+	bind_h = `请在命令后输入Aria2 RPC地址和密码。例如：
+/bind https://example.com/rpc
+或者
+/bind https://example.com/rpc xxxx
+`
+	down_h = `请在命令后输入下载地址和名字。例如：
+/down https://example.com/a.mp4
+或者
+/down https://example.com/a.mp4 b.mp4
+`
+)
+
 var db *gorm.DB
 
 func main() {
@@ -88,7 +107,11 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		case 1:
 			rpchost = ts[0]
 		default:
-			resp(w, "参数格式错误！(rpchost | rpchost token)")
+			resp(w, bind_h)
+			return
+		}
+		if rpchost == "" {
+			resp(w, bind_h)
 			return
 		}
 		c, err := argo.New(context.Background(), rpchost, token, time.Second*5, nil)
@@ -152,7 +175,11 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		case 1:
 			url = ts[0]
 		default:
-			resp(w, "参数格式错误！(url | url name)")
+			resp(w, down_h)
+			return
+		}
+		if url == "" {
+			resp(w, down_h)
 			return
 		}
 		u := User{
@@ -254,6 +281,8 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			str = str[:2000]
 		}
 		resp(w, str)
+	case "":
+		resp(w, help)
 	default:
 		resp(w, "不支持此命令")
 		return
