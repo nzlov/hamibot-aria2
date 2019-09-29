@@ -281,10 +281,8 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			str = str[:2000]
 		}
 		resp(w, str)
-	case "":
-		resp(w, help)
 	default:
-		resp(w, "不支持此命令")
+		resp(w, help)
 		return
 	}
 }
