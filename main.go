@@ -19,22 +19,10 @@ import (
 )
 
 const (
-	help = `Aria2 命令：
-【/bind】：绑定Aria2
-【/unbind】：取消绑定
-【/down】：下载连接
-【/status】：查看状态`
+	help = `Aria2 命令：\n【/bind】：绑定Aria2\n【/unbind】：取消绑定\n【/down】：下载连接\n【/status】：查看状态`
 
-	bind_h = `请在命令后输入Aria2 RPC地址和密码。例如：
-/bind https://example.com/rpc
-或者
-/bind https://example.com/rpc xxxx
-`
-	down_h = `请在命令后输入下载地址和名字。例如：
-/down https://example.com/a.mp4
-或者
-/down https://example.com/a.mp4 b.mp4
-`
+	bind_h = `请在命令后输入Aria2 RPC地址和密码。例如：\n/bind https://example.com/rpc\n或者\n/bind https://example.com/rpc xxxx`
+	down_h = `请在命令后输入下载地址和名字。例如：\n/down https://example.com/a.mp4\n或者\n/down https://example.com/a.mp4 b.mp4`
 )
 
 var db *gorm.DB
@@ -74,6 +62,7 @@ type User struct {
 
 func resp(w http.ResponseWriter, content string) {
 	w.Header().Set("Content-Type", "application/json")
+        fmt.Println("RESP:",content)
 	w.Write([]byte(`{"status":"success","data":"` + content + `"}`))
 }
 
